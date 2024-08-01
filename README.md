@@ -48,13 +48,6 @@ The Terraform state is stored in an S3 bucket to enable collaboration and remote
 Follow the instructions in the Vault documentation to initialize and unseal your Vault server:
 [Initializing and Unsealing Vault](https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-deploy)
 
-### Storing Credentials in Vault
-
-To store your database credentials in Vault, use the following command:
-```sh
-vault kv put secret/db_credentials db_name="wordpress" db_username="wordpress_user" db_password="wordpress_password"
-```
-
 ### AWS CLI Configuration
 
 To configure the AWS CLI, run the following command and provide your AWS access key, secret key, region, and output format:
