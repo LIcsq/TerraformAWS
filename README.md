@@ -32,11 +32,8 @@ WordPress/
 
 ## Configuration
 
-The MySQL RDS and ElastiCache-Redis endpoints and credentials are passed to WordPress via environment variables.
-
-## Deployment
-
-The application is deployed automatically using a user data script in the EC2 instance.
+The application is deployed automatically using a user data script in the EC2 instance. MySQL RDS and ElastiCache-Redis endpoints and credentials are passed to WordPress via environment variables. 
+The Terraform state is stored in an S3 bucket to enable collaboration and remote state management. [Check](https://developer.hashicorp.com/terraform/language/settings/backends/s3)
 
 ## Installation Instructions
 
@@ -89,7 +86,7 @@ aws configure
     
     To store your database credentials in Vault, use the following command:
     ```sh
-    vault kv put secret/db_credentials db_name="wordpress" db_username="wordpress_user" db_password="wordpre
+    vault kv put secret/db_credentials db_name="wordpress" db_username="wordpress_user" db_password="wordpress"
     ```
     
 4. **Initialize Terraform**:
