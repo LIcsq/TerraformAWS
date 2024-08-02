@@ -8,7 +8,8 @@ The following resources are created:
 - VPC with public and private subnets
 - MySQL RDS instance (private)
 - ElastiCache-Redis instance (private)
-- EC2 instance (public)
+- EC2 instance (public via ELB)
+- Elastic Load Balancer (ELB)
 
 ## Project Structure
 
@@ -16,6 +17,7 @@ The following resources are created:
 WordPress/
 ├── modules/
 │   ├── ec2/
+│   ├── elb/
 │   ├── elasticache/
 │   ├── rds/
 │   ├── security_group/
@@ -30,11 +32,8 @@ WordPress/
 
 ## Configuration
 
-The MySQL RDS and ElastiCache-Redis endpoints and credentials are passed to WordPress via environment variables.
-
-## Deployment
-
-The application is deployed automatically using a user data script in the EC2 instance.
+The application is deployed automatically using a user data script in the EC2 instance. MySQL RDS and ElastiCache-Redis endpoints and credentials are passed to WordPress via environment variables. 
+The Terraform state is stored in an S3 bucket to enable collaboration and remote state management. [Check](https://developer.hashicorp.com/terraform/language/settings/backends/s3)
 
 ## Installation Instructions
 
@@ -49,7 +48,6 @@ The application is deployed automatically using a user data script in the EC2 in
 Follow the instructions in the Vault documentation to initialize and unseal your Vault server:
 [Initializing and Unsealing Vault](https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-deploy)
 
-
 ### AWS CLI Configuration
 
 To configure the AWS CLI, run the following command and provide your AWS access key, secret key, region, and output format:
@@ -63,45 +61,36 @@ aws configure
 
 1. **Clone the Repository**:
     ```sh
-    git clone https://github.com/LIcsq/WordPress.git
-    cd WordPress
+    git clone https://github.com/LIcsq/TerrafromAWS.git
+    cd TerrafromAWS
     ```
 
-2. **Export the Vault Token**:
+2. **Setup Vault**:
+   
+   Export vault token:
     ```sh
     export VAULT_TOKEN=YOUR-TOKEN
     ```
-
-3. **Initialize Terraform**:
+    
+   Export vault ip addres:
+    ```sh
+    export VAULT_ADDR='YOUR_IP'
+    ```
+    
+    To store your database credentials in Vault, use the following command:
+    ```sh
+    vault kv put secret/db_credentials db_name="wordpress" db_username="wordpress_user" db_password="wordpress"
+    ```
+    
+4. **Initialize Terraform**:
     ```sh
     terraform init
     ```
 
-4. **Apply Terraform Configuration**:
+5. **Apply Terraform Configuration**:
     ```sh
     terraform apply -auto-approve
     ```
-
-## Usage
-
-The Terraform configuration will set up the following AWS resources:
-- VPC with public and private subnets
-- MySQL RDS instance in a private subnet
-- ElastiCache-Redis instance in a private subnet
-- EC2 instance in a public subnet with WordPress installed
-
-### Example Code Snippets
-
-**Initialize Terraform**:
-```sh
-terraform init
-```
-
-Apply Terraform Configuration:
-
-```sh
-terraform apply -auto-approve
-```
 
 ### Accessing WordPress
 
@@ -118,32 +107,29 @@ Terraform Module Variables
     public_subnet_cidr: List of CIDR blocks for public subnets.
     private_subnet_cidr: List of CIDR blocks for private subnets.
     availability_zones: List of availability zones for subnets.
-    db_name: Name of the database.
-    db_username: Username for the database.
-    db_password: Password for the database.
 ```
 
 ## Customization
 
-To customize the configuration, modify the variables.tf file and update the values as needed. For example, to change the database name:
+To customize the configuration, modify the variables.tf file and update the values as needed. For example, to change the project name:
 
 variables.tf:
 ```sh
-variable "db_name" {
-  description = "The name of the database"
+variable "project_name" {
+  description = "Name of the project"
   type        = string
-  default     = "your_custom_db_name"
+  default     = "your_custom_project_name"
 }
 ```
-Update the corresponding variable in main.tf:
 
+Update the corresponding variable in main.tf:
 ```sh
 module "rds" {
   source            = "./modules/rds"
   subnet_ids        = module.vpc.private_subnet_ids
-  db_name           = var.db_name
-  username          = var.db_username
-  password          = var.db_password
+  db_name           = data.vault_kv_secret_v2.db_credentials.data["db_name"]
+  username          = data.vault_kv_secret_v2.db_credentials.data["db_username"]
+  password          = data.vault_kv_secret_v2.db_credentials.data["db_password"]
   security_group_id = module.security_group.rds_security_group_id
   project_name      = var.project_name
   default_tags      = var.default_tags
@@ -167,8 +153,8 @@ EC2 Instance Access
 
 If you cannot access the WordPress instance:
 
-   - Ensure the security group allows inbound traffic on port 80 (HTTP) and port 443 (HTTPS).
-   - Check the EC2 instance's public IP address and ensure it is correctly assigned.
+   - Ensure the security group allows inbound traffic on port 80 (HTTP) from ELB.
+   - Check the healt status of target group.
 
 ### Vault Issues
 

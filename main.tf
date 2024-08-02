@@ -60,10 +60,10 @@ module "elasticache" {
 
 module "ec2" {
   source             = "./modules/ec2"
-  subnet_id          = element(module.vpc.public_subnet_ids, 0)  # Use the first public subnet for EC2
-  ami                = "ami-03972092c42e8c0ca"  # Updated AMI ID
+  subnet_id          = element(module.vpc.public_subnet_ids, 0)  
+  ami                = "ami-03972092c42e8c0ca"  
   instance_type      = "t2.micro"
-  security_group_ids = [module.security_group.web_security_group_id]  # Use the security group for web
+  security_group_ids = [module.security_group.web_security_group_id]  
   project_name       = var.project_name
   default_tags       = var.default_tags
 
